@@ -5,10 +5,6 @@
 # It supports both the existing Orders system and the ah.sk auction system.
 
 # --- Global plugin toggles ---
-economy:
-  give-command: "addmoney %player% %amount%"
-  remove-command: "removemoney %player% %amount%"
-
 SETTINGS:
   ENABLED: true
   ORDER_DURATION_HOURS: 168
@@ -29,8 +25,8 @@ ECONOMY:
   #   remove-money: "removemoney {player} {amount}"
   #   give-money: "eco give {player} {amount}"
   #   remove-money: "eco take {player} {amount}"
-  give-money: "add-to-balance {player} {amount}"
-  remove-money: "removemoney {player} {amount}"
+  give-command: "addmoney %player% %amount%"
+  remove-command: "removemoney %player% %amount%"
   balance-variable: "{balance::%player%}"
   require-funds-check: true
 
