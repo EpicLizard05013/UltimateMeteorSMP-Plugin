@@ -8,7 +8,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,12 +49,25 @@ public final class UltimateMeteorSMP extends JavaPlugin {
 
         this.orderManager = new OrderManager(this);
 
+        // Register Core Commands
         getCommand("orders").setExecutor(new OrderCommand(this));
         getCommand("ordershelp").setExecutor(new OrdersHelpCommand(this));
+        getCommand("announce").setExecutor(new AnnounceCommand());
 
+        // Register Money Commands (if present in plugin.yml)
+        if (getCommand("addmoney") != null) {
+            getCommand("addmoney").setExecutor(new MoneyCommand(this));
+        }
+        if (getCommand("removemoney") != null) {
+            getCommand("removemoney").setExecutor(new MoneyCommand(this));
+        }
+
+        // Register Core Event Listeners
         getServer().getPluginManager().registerEvents(new OrderGUIListener(this), this);
+        getServer().getPluginManager().registerEvents(new SignInputHandler(), this);
+        getServer().getPluginManager().registerEvents(new ChatModerationListener(this), this);
 
-        // Initialize auction subsystem (if present)
+        // Initialize auction subsystem
         try {
             this.auctionManager = new AuctionManager(this);
             this.auctionGuiManager = new AuctionGuiManager(this);
@@ -64,7 +76,6 @@ public final class UltimateMeteorSMP extends JavaPlugin {
             }
             getServer().getPluginManager().registerEvents(new AuctionListener(this, auctionGuiManager), this);
         } catch (NoClassDefFoundError | Exception e) {
-            // If auction classes are missing or fail to initialize, don't break the whole plugin.
             getLogger().warning("Auction subsystem failed to initialize: " + e.getMessage());
             auctionManager = null;
             auctionGuiManager = null;
@@ -90,7 +101,7 @@ public final class UltimateMeteorSMP extends JavaPlugin {
             });
         }
 
-        // Asynchronously check for updates on startup (console + ops)
+        // Asynchronously check for updates on startup
         try {
             Class<?> uc = Class.forName("com.meteorsmp.ultimatemeteorsmp.UpdateChecker");
             Method m = uc.getMethod("checkForUpdatesAsync", JavaPlugin.class, boolean.class);
@@ -120,7 +131,6 @@ public final class UltimateMeteorSMP extends JavaPlugin {
         return orderManager;
     }
 
-    // Auction getter (may be null if initialization failed)
     public AuctionManager getAuctionManager() {
         return auctionManager;
     }
