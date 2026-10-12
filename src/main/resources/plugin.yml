@@ -1,13 +1,16 @@
-name: UltimateMeteorSMP
-version: 1.0-SNAPSHOT
-main: com.meteorsmp.ultimatemeteorsmp.UltimateMeteorSMP
-api-version: "1.21"
-authors: [ MeteorSMP ]
-description: A high-performance multi-feature SMP core plugin including order markets.
+name: UltimateMeteorSMP-Orders
+main: com.epiclizard.orders.OrdersPlugin
+version: "1.1"
+authors:
+  - EpicLizard05013
+description: "A Java replica of orders.sk (Paper 1.21.11)
+"
 commands:
   orders:
-    description: Opens the main orders menu
-    aliases: [order]
-  ordershelp:
-    description: Admin help command for orders
-    permission: meteorsmp.admin
+    description: Open orders menu
+    usage: /orders [debug|create debug...]
+    permission: meteorsmp.use
+permissions:
+  meteorsmp.admin:
+    description: Admin access to orders debug
+    default: op

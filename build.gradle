@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.epiclizard'
+version = '1.1'
+sourceCompatibility = '17'
+
+description = 'Java replica of orders.sk for Paper 1.21.11'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.papermc.io/repository/maven-public/' }
+}
+
+dependencies {
+    compileOnly 'io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT'
+}
+
+jar {
+    archiveBaseName = 'UltimateMeteorSMP-Orders'
+}
