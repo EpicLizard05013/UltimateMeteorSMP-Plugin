@@ -1,0 +1,44 @@
+# ==========================================================
+# Auction House Skript - Bundled copy (for server operators)
+# This file is included as a reference for server owners who use Skript.
+# ==========================================================
+
+options:
+    trans_cap: 100
+
+variables:
+    {ah::counter} = 0
+
+# --- Helper Functions ---
+
+function parsePrice(t: text) :: number:
+    set {_t} to lowercase {_t}
+    set {_lastChar} to last character of {_t}
+    set {_numStr} to {_t}
+    set {_multiplier} to 1
+    
+    if {_t} contains "qt":
+        set {_multiplier} to 1000000000000000000
+        replace all "qt" with "" in {_numStr}
+    else if {_t} contains "qd":
+        set {_multiplier} to 1000000000000000
+        replace all "qd" with "" in {_numStr}
+    else if {_lastChar} is "t":
+        set {_multiplier} to 1000000000000
+        replace all "t" with "" in {_numStr}
+    else if {_lastChar} is "b":
+        set {_multiplier} to 1000000000
+        replace all "b" with "" in {_numStr}
+    else if {_lastChar} is "m":
+        set {_multiplier} to 1000000
+        replace all "m" with "" in {_numStr}
+    else if {_lastChar} is "k":
+        set {_multiplier} to 1000
+        replace all "k" with "" in {_numStr}
+        
+    set {_n} to {_numStr} parsed as number
+    if {_n} is not set:
+        return -1
+    return {_n} * {_multiplier}
+
+# (script continues... trimmed - full script is included as a bundled resource)
