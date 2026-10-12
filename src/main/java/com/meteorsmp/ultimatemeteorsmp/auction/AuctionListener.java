@@ -39,7 +39,14 @@ public class AuctionListener implements Listener {
 
         if (title.contains("confirm purchase")) {
             event.setCancelled(true);
-            int slot = event.getSlot();
+            // SECURITY: only react to clicks inside the GUI itself, never the
+            // player's own inventory - getSlot() aliases the two, so a click
+            // in the player's backpack can report the same number as a GUI
+            // slot. getRawSlot() plus this check keeps them distinct.
+            if (event.getClickedInventory() == null || !event.getClickedInventory().equals(event.getView().getTopInventory())) {
+                return;
+            }
+            int slot = event.getRawSlot();
             Integer id = guiManager.getConfirmId().get(player.getUniqueId());
             if (slot == 11) {
                 guiManager.openMainGui(player, 1);
@@ -60,7 +67,15 @@ public class AuctionListener implements Listener {
 
         if (title.contains("auction")) {
             event.setCancelled(true);
-            int slot = event.getSlot();
+            // SECURITY: see the note in the "confirm purchase" branch above -
+            // without this check, a click in the player's own inventory can
+            // alias to a listing slot number in the GUI above it, letting a
+            // seller "reclaim" (and duplicate) their own listed item just by
+            // clicking their own backpack at the right slot index.
+            if (event.getClickedInventory() == null || !event.getClickedInventory().equals(event.getView().getTopInventory())) {
+                return;
+            }
+            int slot = event.getRawSlot();
             Map<Integer, Integer> slotMap = guiManager.getSlotMapping(player.getUniqueId());
 
             if (slot < 45 && slotMap != null && slotMap.containsKey(slot)) {
