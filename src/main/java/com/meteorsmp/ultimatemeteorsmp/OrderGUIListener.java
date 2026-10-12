@@ -2,6 +2,7 @@ package com.meteorsmp.ultimatemeteorsmp;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -13,10 +14,15 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BlockStateMeta;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 
 public class OrderGUIListener implements Listener {
     private final UltimateMeteorSMP plugin;
+    private final Map<UUID, String> pickerSearchFilter = new HashMap<>();
+    private final Map<UUID, String> pickerSortMode = new HashMap<>();
 
     public OrderGUIListener(UltimateMeteorSMP plugin) {
         this.plugin = plugin;
@@ -145,10 +151,44 @@ public class OrderGUIListener implements Listener {
         } else if (title.equals("ǫʀᴅᴇʀѕ -> ѕᴇʟᴇᴄᴛ ɪᴛᴇᴍ")) {
             event.setCancelled(true);
             int page = manager.pickerPage.getOrDefault(player.getUniqueId(), 1);
+            ItemStack clickedItem = event.getCurrentItem();
+
             if (slot == 45 && page > 1) {
                 OrderMenus.openItemPickerGUI(player, page - 1, manager);
             } else if (slot == 53) {
                 OrderMenus.openItemPickerGUI(player, page + 1, manager);
+            } else if (slot >= 45 && slot <= 53 && clickedItem != null) {
+                Material type = clickedItem.getType();
+
+                // Sign Search Button
+                if (type.name().contains("SIGN")) {
+                    player.closeInventory();
+                    SignInputHandler.openSignPrompt(player, "^^^ Search Item ^^^", input -> {
+                        if (input == null || input.isEmpty() || input.equalsIgnoreCase("cancel")) {
+                            pickerSearchFilter.remove(player.getUniqueId());
+                            player.sendMessage(OrderManager.TAG + " §cItem search cleared.");
+                        } else {
+                            pickerSearchFilter.put(player.getUniqueId(), input.toLowerCase());
+                            player.sendMessage(OrderManager.TAG + " §aFiltering items by: §e" + input);
+                        }
+                        OrderMenus.openItemPickerGUI(player, 1, manager);
+                    });
+                } 
+                // Hopper Sort Button
+                else if (type == Material.HOPPER) {
+                    String current = pickerSortMode.getOrDefault(player.getUniqueId(), "az");
+                    String next = current.equals("az") ? "za" : "az";
+                    pickerSortMode.put(player.getUniqueId(), next);
+                    player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+                    OrderMenus.openItemPickerGUI(player, page, manager);
+                } 
+                // Cauldron Reset Button
+                else if (type == Material.CAULDRON || type.name().contains("CAULDRON")) {
+                    pickerSearchFilter.remove(player.getUniqueId());
+                    player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 0.5f, 1.0f);
+                    player.sendMessage(OrderManager.TAG + " §aItem filters reset.");
+                    OrderMenus.openItemPickerGUI(player, 1, manager);
+                }
             } else if (slot < 45) {
                 ItemStack chosen = event.getCurrentItem();
                 if (chosen != null && !manager.isIllegalItem(chosen)) {
@@ -158,7 +198,7 @@ public class OrderGUIListener implements Listener {
                     OrderMenus.openNewOrderGUI(player, manager);
                 }
             }
-        } else if (title.equals("ǫʀᴅᴇʀѕ -> ɴᴇᴡ ǫʀᴅᴇʀ")) {
+        } else if (title.equals("ǫʀᴅᴇʀѕ -> ɴᴇw ǫʀᴅᴇʀ") || title.equals("ǫʀᴅᴇʀѕ -> ɴᴇǫʀᴅᴇʀ")) {
             event.setCancelled(true);
             if (slot == 10) {
                 manager.setupItem.remove(player.getUniqueId());
@@ -312,7 +352,6 @@ public class OrderGUIListener implements Listener {
                                 break;
                             }
                         } else if (is.getItemMeta() instanceof BlockStateMeta bsm && bsm.getBlockState() instanceof ShulkerBox box) {
-                            // Shulker box unpacking support
                             ItemStack[] contents = box.getInventory().getContents();
                             boolean modified = false;
                             for (int c = 0; c < contents.length; c++) {
