@@ -1,4 +1,4 @@
-package com.meteorsmp.ultimatemeteorsmp;
+package ultimatemeteorsmp;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -253,7 +253,7 @@ public class OrderGUIListener implements Listener {
                     }
                 }
             }
-        } else if (title.equals("ʏᴏᴜʀ ǫʀᴅᴇʀѕ")) {
+        } else if (title.equals("ʏᴏᴄʀ ǫʀᴅᴇʀѕ")) {
             event.setCancelled(true);
             if (slot == 45) {
                 OrderMenus.openOrdersMenu(player, 1, manager);

@@ -1,4 +1,4 @@
-package com.meteorsmp.ultimatemeteorsmp;
+package ultimatemeteorsmp;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -148,7 +148,7 @@ public class OrderMenus {
         if (page > 1) {
             ItemStack prev = new ItemStack(Material.ARROW);
             ItemMeta pm = prev.getItemMeta();
-            pm.setDisplayName("§fᴘʀᴇᴠɪᴏᴜѕ ᴘᴀɢᴇ");
+            pm.setDisplayName("§fᴘʀᴇᴠɪᴏѕ ᴘᴀɢᴇ");
             prev.setItemMeta(pm);
             gui.setItem(45, prev);
         }
@@ -189,7 +189,7 @@ public class OrderMenus {
                         lore.add("§a$" + order.getPrice() + " each");
                         lore.add("§a" + order.getProgress() + "/" + order.getAmount() + " ᴅᴇʟɪᴠᴇʀᴇᴅ");
                         lore.add(" ");
-                        lore.add("§7" + daysLeft + "ᴅ " + hoursLeft + "ʜ ᴜɴᴛɪʟ ǫʀᴅᴇʀ ᴇxᴘɪʀᴇѕ");
+                        lore.add("§7" + daysLeft + "ᴅ " + hoursLeft + "ʜ ᴄɴᴛɪʟ ǫʀᴅᴇʀ ᴇxᴘɪʀᴇѕ");
                     } else {
                         lore.add("§cᴄᴀɴᴄᴇʟʟᴇᴅ");
                         lore.add("§a" + order.getProgress() + "/" + order.getAmount() + " ᴅᴇʟɪᴠᴇʀᴇᴅ");
@@ -338,14 +338,14 @@ public class OrderMenus {
 
         ItemStack info = new ItemStack(Material.BOOK);
         ItemMeta im = info.getItemMeta();
-        im.setDisplayName("§eꜰᴜʟꜰɪʟʟɪɴɢ: §a" + order.getItem().getType().name());
+        im.setDisplayName("§eꜰᴄʟꜰɪʟʟɪɴɢ: §a" + order.getItem().getType().name());
         im.setLore(Arrays.asList("§7Needed: §f" + needed, "§7Reward: §a$" + order.getPrice() + " §7per unit"));
         info.setItemMeta(im);
         gui.setItem(49, info);
 
         ItemStack confirm = new ItemStack(Material.LIME_STAINED_GLASS_PANE);
         ItemMeta cm = confirm.getItemMeta();
-        cm.setDisplayName("§a§lᴄᴏɴꜰɪʀᴍ ꜰᴜʟꜰɪʟʟ");
+        cm.setDisplayName("§a§lᴄᴏɴꜛɪʀᴍ ꜛʟꜛɪʟʟ");
         cm.setLore(Arrays.asList("§7Click to deposit items & get paid!", "§7(Supports Shulker Boxes!)"));
         confirm.setItemMeta(cm);
         gui.setItem(53, confirm);
@@ -423,7 +423,7 @@ public class OrderMenus {
 
         ItemStack chest = new ItemStack(Material.CHEST);
         ItemMeta chm = chest.getItemMeta();
-        chm.setDisplayName("§6§lǫᴜᴀɴᴛɪᴛʏ: §e" + amount);
+        chm.setDisplayName("§6§lǫᴄᴀɴᴛɪᴛʏ: §e" + amount);
         chm.setLore(Arrays.asList("§7Click to type amount in chat"));
         chest.setItemMeta(chm);
         gui.setItem(13, chest);

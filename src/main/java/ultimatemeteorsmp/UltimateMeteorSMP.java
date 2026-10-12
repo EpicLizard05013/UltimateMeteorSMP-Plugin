@@ -1,4 +1,4 @@
-package com.meteorsmp.ultimatemeteorsmp;
+package ultimatemeteorsmp;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
