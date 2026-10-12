@@ -129,14 +129,19 @@ public class AuctionListener implements Listener {
                 guiManager.openMainGui(player, 1);
             } else if (slot == 50) { // Sign Search Button
                 player.closeInventory();
-                SignInputHandler.openSignPrompt(player, "^^^ Search ^^^", input -> {
-                    if (input == null || input.isEmpty()) {
-                        guiManager.getActiveSearch().remove(player.getUniqueId());
-                    } else {
-                        guiManager.getActiveSearch().put(player.getUniqueId(), input);
-                    }
-                    guiManager.openMainGui(player, 1);
-                });
+                // 1 tick delay: opening a sign editor in the same tick as
+                // closeInventory() gets dropped by the client, since it's
+                // still processing the inventory-close packet.
+                org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    SignInputHandler.openSignPrompt(player, "^^^ Search ^^^", input -> {
+                        if (input == null || input.isEmpty()) {
+                            guiManager.getActiveSearch().remove(player.getUniqueId());
+                        } else {
+                            guiManager.getActiveSearch().put(player.getUniqueId(), input);
+                        }
+                        guiManager.openMainGui(player, 1);
+                    });
+                }, 1L);
             } else if (slot == 51) {
                 String mode = guiManager.getUserViewMode().getOrDefault(player.getUniqueId(), "active");
                 guiManager.getUserViewMode().put(player.getUniqueId(), mode.equals("active") ? "transactions" : "active");
