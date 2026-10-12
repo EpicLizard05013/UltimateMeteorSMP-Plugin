@@ -1,0 +1,16 @@
+name: Orders
+main: com.epiclizard.orders.OrdersPlugin
+version: "1.1"
+api-version: 1.16
+depend:
+  - Vault
+commands:
+  orders:
+    description: Open orders help
+    usage: /orders
+  ordershelp:
+    description: Show orders help
+permissions:
+  meteorsmp.admin:
+    description: Admin permission for orders plugin
+    default: op
