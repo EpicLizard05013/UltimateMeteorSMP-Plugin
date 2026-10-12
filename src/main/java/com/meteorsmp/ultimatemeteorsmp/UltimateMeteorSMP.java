@@ -1,5 +1,9 @@
 package com.meteorsmp.ultimatemeteorsmp;
 
+import com.meteorsmp.ultimatemeteorsmp.auction.AuctionCommand;
+import com.meteorsmp.ultimatemeteorsmp.auction.AuctionGuiManager;
+import com.meteorsmp.ultimatemeteorsmp.auction.AuctionListener;
+import com.meteorsmp.ultimatemeteorsmp.auction.AuctionManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
