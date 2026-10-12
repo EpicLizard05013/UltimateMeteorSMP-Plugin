@@ -1,0 +1,13 @@
+name: UltimateMeteorSMP
+version: 1.0-SNAPSHOT
+main: com.meteorsmp.ultimatemeteorsmp.UltimateMeteorSMP
+api-version: "1.21"
+authors: [ MeteorSMP ]
+description: A high-performance multi-feature SMP core plugin including order markets.
+commands:
+  orders:
+    description: Opens the main orders menu
+    aliases: [order]
+  ordershelp:
+    description: Admin help command for orders
+    permission: meteorsmp.admin
