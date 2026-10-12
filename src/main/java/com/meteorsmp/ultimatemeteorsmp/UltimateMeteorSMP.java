@@ -10,7 +10,6 @@ public final class UltimateMeteorSMP extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
-        saveDefaultConfig();
         
         this.orderManager = new OrderManager(this);
         
