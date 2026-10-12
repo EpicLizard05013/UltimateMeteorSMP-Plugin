@@ -4,14 +4,13 @@ import org.bukkit.inventory.ItemStack;
 
 public class Order {
     private final String id;
-    private final String owner;
+    private final String owner; // Player name or "Server"
     private final ItemStack item;
     private int amount;
     private double price;
     private int progress;
     private int collected;
     private final long timestamp;
-    private boolean cancelled = false;
 
     public Order(String id, String owner, ItemStack item, int amount, double price, int progress, int collected, long timestamp) {
         this.id = id;
@@ -32,9 +31,9 @@ public class Order {
     public int getProgress() { return progress; }
     public int getCollected() { return collected; }
     public long getTimestamp() { return timestamp; }
-    public boolean isCancelled() { return cancelled; }
 
+    public void setAmount(int amount) { this.amount = amount; }
+    public void setPrice(double price) { this.price = price; }
     public void setProgress(int progress) { this.progress = progress; }
     public void setCollected(int collected) { this.collected = collected; }
-    public void setCancelled(boolean cancelled) { this.cancelled = cancelled; }
 }
