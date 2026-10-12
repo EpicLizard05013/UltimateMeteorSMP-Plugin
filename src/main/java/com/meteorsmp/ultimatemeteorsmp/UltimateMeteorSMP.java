@@ -2,6 +2,9 @@ package com.meteorsmp.ultimatemeteorsmp;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
+import java.io.IOException;
+
 public final class UltimateMeteorSMP extends JavaPlugin {
 
     private static UltimateMeteorSMP instance;
@@ -15,8 +18,21 @@ public final class UltimateMeteorSMP extends JavaPlugin {
         saveDefaultConfig();
 
         // Ensure runtime orders.yml exists as well.
-        if (!new java.io.File(getDataFolder(), "orders.yml").exists()) {
-            saveResource("orders.yml", false);
+        File ordersFile = new File(getDataFolder(), "orders.yml");
+        if (!ordersFile.exists()) {
+            if (getResource("orders.yml") != null) {
+                saveResource("orders.yml", false);
+            } else {
+                try {
+                    if (ordersFile.createNewFile()) {
+                        getLogger().warning("orders.yml was missing from the JAR; created an empty file instead.");
+                    }
+                } catch (IOException e) {
+                    getLogger().severe("Failed to create orders.yml: " + e.getMessage());
+                    setEnabled(false);
+                    return;
+                }
+            }
         }
 
         this.orderManager = new OrderManager(this);

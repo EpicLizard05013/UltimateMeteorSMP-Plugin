@@ -16,7 +16,7 @@ public class OrderManager {
     private final Map<String, Order> activeOrders = new LinkedHashMap<>();
     private final List<String> orderList = new ArrayList<>();
     private final Map<UUID, Double> balances = new HashMap<>();
-    
+
     // User session states
     public final Map<UUID, ItemStack> setupItem = new HashMap<>();
     public final Map<UUID, Integer> setupAmount = new HashMap<>();
@@ -68,7 +68,7 @@ public class OrderManager {
                 double refund = remaining * order.getPrice();
                 Player ownerPlayer = Bukkit.getPlayer(order.getOwner());
                 UUID ownerUUID = ownerPlayer != null ? ownerPlayer.getUniqueId() : null;
-                
+
                 // If offline, attempt parse if stored as UUID string or fallback to name lookup
                 if (ownerPlayer != null) {
                     addBalance(ownerPlayer.getUniqueId(), refund);
@@ -115,12 +115,28 @@ public class OrderManager {
 
     public void loadOrders() {
         ordersFile = new File(plugin.getDataFolder(), "orders.yml");
-        if (!ordersFile.exists()) {
-            plugin.saveResource("orders.yml", false);
+        if (!plugin.getDataFolder().exists()) {
+            plugin.getDataFolder().mkdirs();
         }
+
+        if (!ordersFile.exists()) {
+            if (plugin.getResource("orders.yml") != null) {
+                plugin.saveResource("orders.yml", false);
+            } else {
+                try {
+                    if (ordersFile.createNewFile()) {
+                        plugin.getLogger().warning("orders.yml was missing from the JAR; created an empty file instead.");
+                    }
+                } catch (IOException e) {
+                    plugin.getLogger().severe("Failed to create orders.yml: " + e.getMessage());
+                    return;
+                }
+            }
+        }
+
         ordersConfig = YamlConfiguration.loadConfiguration(ordersFile);
         idCounter = ordersConfig.getInt("system.id_counter", 0);
-        
+
         if (ordersConfig.contains("active")) {
             for (String id : ordersConfig.getConfigurationSection("active").getKeys(false)) {
                 String owner = ordersConfig.getString("active." + id + ".owner");
@@ -171,7 +187,7 @@ public class OrderManager {
 
     public Map<String, Order> getActiveOrders() { return activeOrders; }
     public List<String> getOrderList() { return orderList; }
-    
+
     public double getBalance(UUID uuid) { return balances.getOrDefault(uuid, 0.0); }
     public void addBalance(UUID uuid, double amount) { balances.put(uuid, getBalance(uuid) + amount); saveOrders(); }
     public void removeBalance(UUID uuid, double amount) { balances.put(uuid, Math.max(0, getBalance(uuid) - amount)); saveOrders(); }
