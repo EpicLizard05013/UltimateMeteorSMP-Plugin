@@ -1,6 +1,7 @@
 package com.meteorsmp.ultimatemeteorsmp.auction;
 
 import com.meteorsmp.ultimatemeteorsmp.UltimateMeteorSMP;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -9,7 +10,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.Inventory;
 
+import java.lang.reflect.Method;
 import java.util.Map;
 
 public class AuctionListener implements Listener {
@@ -52,6 +55,12 @@ public class AuctionListener implements Listener {
 
         if (title.contains("Confirm Purchase")) {
             event.setCancelled(true);
+
+            Inventory top = event.getView().getTopInventory();
+            if (event.getClickedInventory() != null && !event.getClickedInventory().equals(top)) {
+                return;
+            }
+
             int slot = event.getSlot();
             Integer id = guiManager.getConfirmId().get(player.getUniqueId());
             if (slot == 11) {
@@ -63,9 +72,20 @@ public class AuctionListener implements Listener {
                     player.closeInventory();
                     return;
                 }
-                plugin.getAuctionManager().removeListing(id);
-                player.getInventory().addItem(item.getItem());
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix") + "&aSuccessfully purchased item!"));
+
+                if (item.getSellerUuid().equals(player.getUniqueId())) {
+                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f") + "&cYou cannot buy your own listing."));
+                    player.closeInventory();
+                    return;
+                }
+
+                if (!plugin.getAuctionManager().completePurchase(player, item)) {
+                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f") + "&cPurchase failed. Economy is not configured or you cannot afford this item."));
+                    player.closeInventory();
+                    return;
+                }
+
+                player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f") + "&aSuccessfully purchased item!"));
                 player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.5f);
                 player.closeInventory();
             }
@@ -74,6 +94,12 @@ public class AuctionListener implements Listener {
 
         if (title.contains("Auction")) {
             event.setCancelled(true);
+
+            Inventory top = event.getView().getTopInventory();
+            if (event.getClickedInventory() != null && !event.getClickedInventory().equals(top)) {
+                return;
+            }
+
             int slot = event.getSlot();
             Map<Integer, Integer> slotMap = guiManager.getSlotMapping(player.getUniqueId());
 
@@ -99,8 +125,10 @@ public class AuctionListener implements Listener {
                     if (plugin.getConfig().getBoolean("auction.require-purchase-confirmation", true)) {
                         guiManager.openConfirmGui(player, item);
                     } else {
-                        plugin.getAuctionManager().removeListing(id);
-                        player.getInventory().addItem(item.getItem());
+                        if (!plugin.getAuctionManager().completePurchase(player, item)) {
+                            player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f") + "&cPurchase failed. Economy is not configured or you cannot afford this item."));
+                            return;
+                        }
                         player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix") + "&aSuccessfully purchased item!"));
                         guiManager.openMainGui(player, 1);
                     }
