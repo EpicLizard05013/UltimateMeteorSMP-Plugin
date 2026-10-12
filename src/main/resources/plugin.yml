@@ -4,6 +4,9 @@ version: '1.1'
 api-version: '1.21'
 description: Java replica of orders.sk for Paper 1.21.11
 commands:
+  ah:
+    description: Open auction house
+    aliases: [auctionhouse, auction]
   orders:
     description: Open the order menu
     usage: /orders [debug]
