@@ -21,8 +21,6 @@ import java.util.UUID;
 
 public class OrderGUIListener implements Listener {
     private final UltimateMeteorSMP plugin;
-    private final Map<UUID, String> pickerSearchFilter = new HashMap<>();
-    private final Map<UUID, String> pickerSortMode = new HashMap<>();
 
     public OrderGUIListener(UltimateMeteorSMP plugin) {
         this.plugin = plugin;
@@ -163,28 +161,33 @@ public class OrderGUIListener implements Listener {
                 // Sign Search Button
                 if (type.name().contains("SIGN")) {
                     player.closeInventory();
-                    SignInputHandler.openSignPrompt(player, "^^^ Search Item ^^^", input -> {
-                        if (input == null || input.isEmpty() || input.equalsIgnoreCase("cancel")) {
-                            pickerSearchFilter.remove(player.getUniqueId());
-                            player.sendMessage(OrderManager.TAG + " §cItem search cleared.");
-                        } else {
-                            pickerSearchFilter.put(player.getUniqueId(), input.toLowerCase());
-                            player.sendMessage(OrderManager.TAG + " §aFiltering items by: §e" + input);
-                        }
-                        OrderMenus.openItemPickerGUI(player, 1, manager);
-                    });
+                    // 1 tick delay: opening a sign editor in the same tick as
+                    // closeInventory() gets dropped by the client, since it's
+                    // still processing the inventory-close packet.
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        SignInputHandler.openSignPrompt(player, "^^^ Search Item ^^^", input -> {
+                            if (input == null || input.isEmpty() || input.equalsIgnoreCase("cancel")) {
+                                manager.pickerSearchFilter.remove(player.getUniqueId());
+                                player.sendMessage(OrderManager.TAG + " §cItem search cleared.");
+                            } else {
+                                manager.pickerSearchFilter.put(player.getUniqueId(), input.toLowerCase());
+                                player.sendMessage(OrderManager.TAG + " §aFiltering items by: §e" + input);
+                            }
+                            OrderMenus.openItemPickerGUI(player, 1, manager);
+                        });
+                    }, 1L);
                 } 
                 // Hopper Sort Button
                 else if (type == Material.HOPPER) {
-                    String current = pickerSortMode.getOrDefault(player.getUniqueId(), "az");
+                    String current = manager.pickerSortMode.getOrDefault(player.getUniqueId(), "az");
                     String next = current.equals("az") ? "za" : "az";
-                    pickerSortMode.put(player.getUniqueId(), next);
+                    manager.pickerSortMode.put(player.getUniqueId(), next);
                     player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
                     OrderMenus.openItemPickerGUI(player, page, manager);
                 } 
                 // Cauldron Reset Button
                 else if (type == Material.CAULDRON || type.name().contains("CAULDRON")) {
-                    pickerSearchFilter.remove(player.getUniqueId());
+                    manager.pickerSearchFilter.remove(player.getUniqueId());
                     player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 0.5f, 1.0f);
                     player.sendMessage(OrderManager.TAG + " §aItem filters reset.");
                     OrderMenus.openItemPickerGUI(player, 1, manager);
