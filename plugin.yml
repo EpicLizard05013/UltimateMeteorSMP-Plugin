@@ -1,16 +1,21 @@
-name: Orders
-main: com.epiclizard.orders.OrdersPlugin
-version: "1.1"
-api-version: "1.21"
+name: UltimateMeteorSMP-Orders
+main: com.meteorsmp.ultimatemeteorsmp.UltimateMeteorSMP
+version: '1.1'
+api-version: '1.21'
+description: Java replica of orders.sk for Paper 1.21.11
 commands:
   orders:
-    description: Open orders market and debug commands
-    aliases: [order]
-    usage: /orders
+    description: Open the order menu
+    usage: /orders [debug]
+    permission: meteorsmp.use
   ordershelp:
-    description: Show orders help
+    description: Show the order help menu
+    usage: /ordershelp
     permission: meteorsmp.admin
 permissions:
   meteorsmp.admin:
-    description: Admin permission for orders plugin
+    description: Admin access to debug order commands
     default: op
+  meteorsmp.use:
+    description: Allows access to the orders command
+    default: true
