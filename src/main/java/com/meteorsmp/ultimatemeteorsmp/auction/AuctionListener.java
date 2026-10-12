@@ -9,7 +9,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.Map;
 
@@ -26,7 +25,7 @@ public class AuctionListener implements Listener {
     public void onChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
         if (guiManager.getSearchingChat().getOrDefault(player.getUniqueId(), false)) {
-            event.setCancelled();
+            event.setCancelled(true);
             guiManager.getSearchingChat().remove(player.getUniqueId());
             String msg = event.getMessage();
             if (msg.equalsIgnoreCase("cancel") || msg.equalsIgnoreCase("none")) {
@@ -47,12 +46,12 @@ public class AuctionListener implements Listener {
         String title = ChatColor.stripColor(event.getView().getTitle());
 
         if (title.contains("Shulker Preview")) {
-            event.setCancelled();
+            event.setCancelled(true);
             return;
         }
 
         if (title.contains("Confirm Purchase")) {
-            event.setCancelled();
+            event.setCancelled(true);
             int slot = event.getSlot();
             Integer id = guiManager.getConfirmId().get(player.getUniqueId());
             if (slot == 11) {
@@ -64,7 +63,6 @@ public class AuctionListener implements Listener {
                     player.closeInventory();
                     return;
                 }
-                // Process purchase here (hook into Vault or player balance system)
                 plugin.getAuctionManager().removeListing(id);
                 player.getInventory().addItem(item.getItem());
                 player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix") + "&aSuccessfully purchased item!"));
@@ -75,7 +73,7 @@ public class AuctionListener implements Listener {
         }
 
         if (title.contains("Auction")) {
-            event.setCancelled();
+            event.setCancelled(true);
             int slot = event.getSlot();
             Map<Integer, Integer> slotMap = guiManager.getSlotMapping(player.getUniqueId());
 
@@ -101,7 +99,6 @@ public class AuctionListener implements Listener {
                     if (plugin.getConfig().getBoolean("auction.require-purchase-confirmation", true)) {
                         guiManager.openConfirmGui(player, item);
                     } else {
-                        // Direct purchase logic
                         plugin.getAuctionManager().removeListing(id);
                         player.getInventory().addItem(item.getItem());
                         player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix") + "&aSuccessfully purchased item!"));
