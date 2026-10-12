@@ -10,14 +10,22 @@ public final class UltimateMeteorSMP extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
-        
+
+        // Copy config.yml from the jar to the plugin data folder if it does not exist yet.
+        saveDefaultConfig();
+
+        // Ensure runtime orders.yml exists as well.
+        if (!new java.io.File(getDataFolder(), "orders.yml").exists()) {
+            saveResource("orders.yml", false);
+        }
+
         this.orderManager = new OrderManager(this);
-        
+
         getCommand("orders").setExecutor(new OrderCommand(this));
         getCommand("ordershelp").setExecutor(new OrdersHelpCommand(this));
-        
+
         getServer().getPluginManager().registerEvents(new OrderGUIListener(this), this);
-        
+
         getLogger().info("UltimateMeteorSMP has been enabled successfully!");
     }
 
