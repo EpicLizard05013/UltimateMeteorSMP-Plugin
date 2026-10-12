@@ -25,7 +25,7 @@ public class AuctionCommand implements CommandExecutor {
             sender.sendMessage("Players only!");
             return true;
         }
-        Player player = (Player) player;
+        Player player = (Player) sender;
         String prefix = ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f"));
 
         if (command.getName().equalsIgnoreCase("ah") || command.getName().equalsIgnoreCase("auctionhouse") || command.getName().equalsIgnoreCase("auction")) {
