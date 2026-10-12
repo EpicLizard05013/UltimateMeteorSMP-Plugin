@@ -363,8 +363,17 @@ public class OrderMenus {
 
     public static void openItemPickerGUI(Player p, int page, OrderManager manager) {
         Inventory gui = Bukkit.createInventory(null, 54, "ǫʀᴅᴇʀѕ -> ѕᴇʟᴇᴄᴛ ɪᴛᴇᴍ");
-        List<Material> allTypes = Arrays.asList(Material.values());
-        
+
+        String search = manager.pickerSearchFilter.get(p.getUniqueId());
+        String sort = manager.pickerSortMode.getOrDefault(p.getUniqueId(), "az");
+
+        List<Material> allTypes = new ArrayList<>(Arrays.asList(Material.values()));
+        if (search != null && !search.isEmpty()) {
+            String needle = search.toLowerCase();
+            allTypes.removeIf(mat -> !mat.name().toLowerCase().contains(needle));
+        }
+        allTypes.sort((a, b) -> sort.equals("za") ? b.name().compareTo(a.name()) : a.name().compareTo(b.name()));
+
         int startIndex = (page - 1) * 45;
         int slot = 0;
         boolean hasNext = false;
@@ -383,9 +392,28 @@ public class OrderMenus {
             }
         }
 
-        gui.setItem(48, new ItemStack(Material.CAULDRON));
-        gui.setItem(49, new ItemStack(Material.HOPPER));
-        gui.setItem(50, new ItemStack(Material.OAK_SIGN));
+        ItemStack cauldron = new ItemStack(Material.CAULDRON);
+        ItemMeta caulM = cauldron.getItemMeta();
+        caulM.setDisplayName("§c§lʀᴇѕᴇᴛ ꜰɪʟᴛᴇʀѕ");
+        caulM.setLore(Arrays.asList("§7Click to clear the search filter."));
+        cauldron.setItemMeta(caulM);
+        gui.setItem(48, cauldron);
+
+        ItemStack hopper = new ItemStack(Material.HOPPER);
+        ItemMeta hopM = hopper.getItemMeta();
+        hopM.setDisplayName("§e§lѕᴏʀᴛ: " + (sort.equals("za") ? "§cZ - A" : "§aA - Z"));
+        hopM.setLore(Arrays.asList("§7Click to switch sort order."));
+        hopper.setItemMeta(hopM);
+        gui.setItem(49, hopper);
+
+        ItemStack sign = new ItemStack(Material.OAK_SIGN);
+        ItemMeta signM = sign.getItemMeta();
+        signM.setDisplayName("§e§lѕᴇᴀʀᴄʜ");
+        signM.setLore(search != null && !search.isEmpty()
+                ? Arrays.asList("§7Current filter: §e" + search)
+                : Arrays.asList("§7Click to search items."));
+        sign.setItemMeta(signM);
+        gui.setItem(50, sign);
 
         if (page > 1) gui.setItem(45, new ItemStack(Material.ARROW));
         if (hasNext) gui.setItem(53, new ItemStack(Material.ARROW));
