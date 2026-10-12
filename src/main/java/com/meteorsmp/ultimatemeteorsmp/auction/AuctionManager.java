@@ -1,9 +1,12 @@
 package com.meteorsmp.ultimatemeteorsmp.auction;
 
 import com.meteorsmp.ultimatemeteorsmp.UltimateMeteorSMP;
+import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.RegisteredServiceProvider;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,6 +41,48 @@ public class AuctionManager {
 
     public Collection<AuctionItem> getAllListings() {
         return listings.values();
+    }
+
+    public boolean completePurchase(Player buyer, AuctionItem item) {
+        if (!listings.containsKey(item.getId())) return false;
+
+        double price = item.getPrice();
+        RegisteredServiceProvider<Economy> rsp = plugin.getServer().getServicesManager().getRegistration(Economy.class);
+        
+        if (rsp != null) {
+            Economy econ = rsp.getProvider();
+            if (econ.getBalance(buyer) < price) {
+                String prefix = ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f"));
+                String msg = ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.not-enough-money", "&7You don't have enough money! You need &e$%price%&7."));
+                buyer.sendMessage(prefix + msg.replace("%price%", formatPrice(price)));
+                return false;
+            }
+            econ.withdrawPlayer(buyer, price);
+            econ.depositPlayer(Bukkit.getOfflinePlayer(item.getSellerUuid()), price);
+        }
+
+        listings.remove(item.getId());
+
+        // Give item, drop on ground if inventory is full so items are never lost
+        HashMap<Integer, ItemStack> leftover = buyer.getInventory().addItem(item.getItem());
+        if (!leftover.isEmpty()) {
+            for (ItemStack drop : leftover.values()) {
+                buyer.getWorld().dropItemNaturally(buyer.getLocation(), drop);
+            }
+            String prefix = ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f"));
+            buyer.sendMessage(prefix + ChatColor.translateAlternateColorCodes('&', "&eYour inventory was full, so the item was dropped at your feet!"));
+        }
+
+        logTransaction(buyer.getUniqueId(), item.getItemName(), buyer.getName(), item.getSellerName(), price);
+        logTransaction(item.getSellerUuid(), item.getItemName(), buyer.getName(), item.getSellerName(), price);
+
+        Player seller = Bukkit.getPlayer(item.getSellerUuid());
+        if (seller != null && seller.isOnline()) {
+            String prefix = ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f"));
+            seller.sendMessage(prefix + ChatColor.translateAlternateColorCodes('&', "&e" + buyer.getName() + " &fpurchased your listed item for &a$" + formatPrice(price) + "&f!"));
+        }
+
+        return true;
     }
 
     public void logTransaction(UUID uuid, String itemName, String buyer, String seller, double price) {
