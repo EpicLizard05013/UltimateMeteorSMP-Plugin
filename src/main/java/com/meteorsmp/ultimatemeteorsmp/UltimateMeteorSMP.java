@@ -61,3 +61,14 @@ public final class UltimateMeteorSMP extends JavaPlugin {
         return orderManager;
     }
 }
+
+private AuctionManager auctionManager;
+private AuctionGuiManager auctionGuiManager;
+
+// In onEnable():
+this.auctionManager = new AuctionManager(this);
+this.auctionGuiManager = new AuctionGuiManager(this);
+getCommand("ah").setExecutor(new AuctionCommand(this, auctionGuiManager));
+getServer().getPluginManager().registerEvents(new AuctionListener(this, auctionGuiManager), this);
+
+public AuctionManager getAuctionManager() { return auctionManager; }
