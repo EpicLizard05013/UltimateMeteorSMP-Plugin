@@ -11,388 +11,338 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BlockStateMeta;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 public class OrdersPlugin extends JavaPlugin implements Listener {
-    private OrderManager manager;
+    private OrderManager orderManager;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        this.manager = new OrderManager(this);
+        this.orderManager = new OrderManager(this);
         Bukkit.getPluginManager().registerEvents(this, this);
 
-        Objects.requireNonNull(getCommand("orders")).setExecutor((sender, command, label, args) -> {
-            if (!(sender instanceof Player)) {
-                sender.sendMessage(ChatColor.RED + "Console command support is limited.");
+        Objects.requireNonNull(getCommand("orders"), "orders command missing").setExecutor((sender, command, label, args) -> {
+            if (!(sender instanceof Player player)) {
+                sender.sendMessage(ChatColor.RED + "This command can only be used by a player.");
                 return true;
             }
-            Player player = (Player) sender;
-            if (args.length >= 1) {
-                String raw = String.join(" ", args).trim();
-                if (raw.equalsIgnoreCase("debug")) {
-                    if (player.hasPermission("meteorsmp.admin") || player.isOp()) {
-                        openDebugGUI(player);
-                    } else {
-                        player.sendMessage(color("&cYou do not have permission."));
-                    }
-                    return true;
+
+            if (args.length > 0 && args[0].equalsIgnoreCase("debug")) {
+                if (player.hasPermission("meteorsmp.admin") || player.isOp()) {
+                    openDebugGUI(player);
+                } else {
+                    player.sendMessage(ChatColor.RED + "You do not have permission.");
                 }
-                if (raw.toLowerCase().startsWith("create debug") || raw.toLowerCase().startsWith("debug ")) {
-                    if (player.hasPermission("meteorsmp.admin") || player.isOp()) {
-                        // simple debug creation: use item in hand if present, otherwise random
-                        ItemStack item = player.getInventory().getItemInMainHand();
-                        if (item == null || item.getType() == Material.AIR) {
-                            item = new ItemStack(Material.DIAMOND);
-                        }
-                        int amount = 1;
-                        double price = 10;
-                        manager.createDebugOrder(item, amount, price, player.getName());
-                        player.sendMessage(color("&aDebug order created."));
-                    } else {
-                        player.sendMessage(color("&cYou do not have permission to use debug commands."));
-                    }
-                    return true;
-                }
+                return true;
             }
+
             openOrdersMenu(player, 1);
             return true;
         });
 
-        // expiry task: run every minute
         new BukkitRunnable() {
             @Override
             public void run() {
-                manager.checkExpiry();
+                orderManager.checkExpiry();
             }
-        }.runTaskTimer(this, 20L, 20L * 60);
-
-        getLogger().info("Orders plugin enabled (replica v1.1)");
+        }.runTaskTimer(this, 20L, 20L * 60L);
     }
 
     @Override
     public void onDisable() {
-        manager.save();
-        getLogger().info("Orders plugin disabled");
+        if (orderManager != null) {
+            orderManager.save();
+        }
     }
 
-    // ---------- GUI / Menus ----------
-    public void openDebugGUI(Player p) {
-        Inventory gui = Bukkit.createInventory(null, 3 * 9, color("\u0275ʀᴅᴇʀѕ -> ᴅᴇʙᴜɢ ᴍᴇɴᴜ"));
-        ItemStack filler = Utils.named(Material.GRAY_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 27; i++) gui.setItem(i, filler);
-        gui.setItem(11, Utils.named(Material.TNT, color("&c&lCLEAR ALL ACTIVE ORDERS")));
-        gui.setItem(13, Utils.named(Material.NETHER_STAR, color("&a&lSPAWN RANDOM DEBUG ORDER")));
-        gui.setItem(15, Utils.named(Material.GOLD_INGOT, color("&e&lGIVE $10,000 TEST BALANCE")));
-        p.openInventory(gui);
+    private String color(String message) {
+        return ChatColor.translateAlternateColorCodes('&', message);
     }
 
-    public void openOrdersMenu(Player p, int page) {
-        List<Order> active = manager.getActiveOrders().stream().filter(o -> o.getPrice() > 0 || o.getAmount() > o.getProgress()).collect(Collectors.toList());
+    public void openDebugGUI(Player player) {
+        Inventory gui = Bukkit.createInventory(null, 3 * 9, color("Orders -> Debug Menu"));
+        for (int i = 0; i < gui.getSize(); i++) {
+            gui.setItem(i, Utils.named(Material.GRAY_STAINED_GLASS_PANE, " "));
+        }
+        gui.setItem(11, Utils.named(Material.TNT, color("&c&lClear all active orders")));
+        gui.setItem(13, Utils.named(Material.NETHER_STAR, color("&a&lSpawn random debug order")));
+        gui.setItem(15, Utils.named(Material.GOLD_INGOT, color("&e&lGive $10,000 test balance")));
+        player.openInventory(gui);
+    }
+
+    public void openOrdersMenu(Player player, int page) {
+        List<Order> orders = orderManager.getActiveOrders();
+        Inventory gui = Bukkit.createInventory(null, 6 * 9, color("Orders (Page " + page + ")"));
+        for (int i = 0; i < gui.getSize(); i++) {
+            gui.setItem(i, Utils.named(Material.GRAY_STAINED_GLASS_PANE, " "));
+        }
+
         int start = (page - 1) * 45;
-        Inventory gui = Bukkit.createInventory(null, 6 * 9, color("\u0275ʀᴅᴇʀѕ (ᴘᴀɢᴇ " + page + ")"));
-        ItemStack filler = Utils.named(Material.GRAY_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 54; i++) gui.setItem(i, filler);
-
         int slot = 0;
-        for (int i = start; i < Math.min(active.size(), start + 45); i++) {
-            Order o = active.get(i);
-            ItemStack display = o.getItem().clone();
-            Utils.setName(display, color("&f" + o.getItemDisplay()));
+        for (int i = start; i < Math.min(start + 45, orders.size()); i++) {
+            Order order = orders.get(i);
+            if (order == null) continue;
+            ItemStack display = order.getItem().clone();
+            Utils.setName(display, color("&f" + order.getDisplayName()));
             List<String> lore = new ArrayList<>();
-            lore.add(color("&a" + o.getAmount() + " requested"));
-            lore.add(color("&7Created by: &e" + o.getOwnerName()));
+            lore.add(color("&a" + order.getAmount() + " requested"));
+            lore.add(color("&7Created by: &e" + order.getOwnerName()));
             lore.add(" ");
-            lore.add(color("&a$" + o.getPrice() + " each"));
-            lore.add(color("&a" + o.getProgress() + "/" + o.getAmount() + " ᴅᴇʟɪᴠᴇʀᴇᴅ"));
-            lore.add(" ");
-            long diff = Math.max(0, o.getExpireTime() - System.currentTimeMillis() / 1000L);
-            long days = diff / 86400;
-            long hours = (diff % 86400) / 3600;
-            lore.add(color("&7" + days + "ᴅ " + hours + "ʜ ᴜɴᴛɪʟ ǫʀᴅᴇʀ ᴇxᴘɪʀᴇѕ"));
+            lore.add(color("&a$" + order.getPrice() + " each"));
+            lore.add(color("&a" + order.getProgress() + "/" + order.getAmount() + " delivered"));
             Utils.setLore(display, lore);
             gui.setItem(slot++, display);
         }
 
-        gui.setItem(47, Utils.named(Material.HOPPER, color("&eѕᴏʀᴛ ǫʀᴅᴇʀѕ")));
-        gui.setItem(48, Utils.named(Material.AMETHYST_SHARD, color("&dѕʜᴏᴘ")));
-        gui.setItem(49, Utils.named(Material.BOOK, color("&aᴄʀᴇᴀᴛᴇ ǫʀᴅᴇʀ")));
-        gui.setItem(50, Utils.named(Material.OAK_SIGN, color("&eѕᴇᴀʀᴄʜ ǫʀᴅᴇʀѕ")));
-        gui.setItem(51, Utils.named(Material.CHEST, color("&6ʏᴏᴜʀ ǫʀᴅᴇʀѕ")));
-        if (page > 1) gui.setItem(45, Utils.named(Material.ARROW, color("&fᴘʀᴇᴠɪᴏᴜѕ ᴘᴀɢᴇ")));
-        if (active.size() > start + 45) gui.setItem(53, Utils.named(Material.ARROW, color("&fɴᴇxt ᴘᴀɢᴇ")));
-
-        p.openInventory(gui);
-        manager.setViewerPage(p, page);
+        gui.setItem(45, Utils.named(Material.ARROW, color("&fPrevious page")));
+        gui.setItem(53, Utils.named(Material.ARROW, color("&fNext page")));
+        gui.setItem(49, Utils.named(Material.BOOK, color("&aCreate order")));
+        gui.setItem(51, Utils.named(Material.CHEST, color("&6Your orders")));
+        player.openInventory(gui);
+        orderManager.setViewerPage(player, page);
     }
 
-    public void openNewOrderGUI(Player p) {
-        Inventory gui = Bukkit.createInventory(null, 3 * 9, color("\u0275ʀᴅᴇʀѕ -> ɴᴇᴡ ǫʀᴅᴇʀ"));
-        ItemStack filler = Utils.named(Material.GRAY_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 27; i++) gui.setItem(i, filler);
-
-        ItemStack selected = manager.getSetupItem(p);
-        if (selected == null) {
-            selected = new ItemStack(Material.STONE);
-            manager.setSetupItem(p, selected);
+    public void openNewOrderGUI(Player player) {
+        Inventory gui = Bukkit.createInventory(null, 3 * 9, color("Orders -> New Order"));
+        for (int i = 0; i < gui.getSize(); i++) {
+            gui.setItem(i, Utils.named(Material.GRAY_STAINED_GLASS_PANE, " "));
         }
+
+        ItemStack selected = orderManager.getSetupItem(player);
+        if (selected == null || selected.getType() == Material.AIR) {
+            selected = new ItemStack(Material.STONE);
+            orderManager.setSetupItem(player, selected);
+        }
+
         ItemStack itemDisplay = selected.clone();
-        Utils.setName(itemDisplay, color("&f&l" + Utils.cleanName(selected)));
-        Utils.setLore(itemDisplay, Arrays.asList(color("&7Click here if this was a mistake"), color("&eClick to choose a different item")));
+        Utils.setName(itemDisplay, color("&f&l" + Utils.cleanName(itemDisplay)));
+        List<String> lore = new ArrayList<>();
+        lore.add(color("&7Click to choose a different item"));
+        Utils.setLore(itemDisplay, lore);
         gui.setItem(12, itemDisplay);
 
-        gui.setItem(10, Utils.named(Material.RED_CONCRETE, color("&c&lᴄᴀɴᴄᴇʟ ᴏʀᴅᴇʀ")));
-        gui.setItem(13, Utils.named(Material.CHEST, color("&6&lǫᴜᴀɴᴛɪᴛʏ: &e" + manager.getSetupAmount(p))));
-        gui.setItem(14, Utils.named(Material.EMERALD, color("&a&lᴘʀɪᴄᴇ ᴘᴇʀ ᴜɴɪᴛ: &e$" + manager.getSetupPrice(p))));
-        gui.setItem(16, Utils.named(Material.LIME_STAINED_GLASS_PANE, color("&a&lѕᴛᴀʀᴛ ᴏʀᴅᴇʀ")));
-
-        p.openInventory(gui);
+        gui.setItem(10, Utils.named(Material.RED_CONCRETE, color("&c&lCancel")));
+        gui.setItem(13, Utils.named(Material.CHEST, color("&6&lQuantity: &e" + orderManager.getSetupAmount(player))));
+        gui.setItem(14, Utils.named(Material.EMERALD, color("&a&lPrice: &e$" + orderManager.getSetupPrice(player))));
+        gui.setItem(16, Utils.named(Material.LIME_STAINED_GLASS_PANE, color("&a&lStart order")));
+        player.openInventory(gui);
     }
 
-    public void openFulfillGUI(Player p, String id) {
-        Order o = manager.getOrder(id);
-        if (o == null) return;
-        Inventory gui = Bukkit.createInventory(null, 6 * 9, color("\u0275ʀᴅᴇʀѕ -> ᴅᴇʟɪᴠᴇʀ ɪᴛᴇᴍѕ"));
-        ItemStack filler = Utils.named(Material.GRAY_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 54; i++) gui.setItem(i, filler);
+    public void openFulfillGUI(Player player, String id) {
+        Order order = orderManager.getOrder(id);
+        if (order == null) return;
 
-        ItemStack info = Utils.named(Material.WRITTEN_BOOK, color("&eꜰᴜʟꜰɪʟʟɪɴɢ: &a" + o.getItemDisplay()));
-        Utils.setLore(info, Arrays.asList(color("&7Needed: &f" + (o.getAmount() - o.getProgress())), color("&7Reward: &a$" + o.getPrice() + " &7per unit")));
+        Inventory gui = Bukkit.createInventory(null, 6 * 9, color("Orders -> Deliver Items"));
+        for (int i = 0; i < gui.getSize(); i++) {
+            gui.setItem(i, Utils.named(Material.GRAY_STAINED_GLASS_PANE, " "));
+        }
+
+        ItemStack info = Utils.named(Material.WRITTEN_BOOK, color("&eFulfilling: &a" + order.getDisplayName()));
+        List<String> lore = new ArrayList<>();
+        lore.add(color("&7Needed: &f" + (order.getAmount() - order.getProgress())));
+        lore.add(color("&7Reward: &a$" + order.getPrice() + " per unit"));
+        Utils.setLore(info, lore);
         gui.setItem(49, info);
-        gui.setItem(53, Utils.named(Material.LIME_STAINED_GLASS_PANE, color("&a&lᴄᴏɴꜰɪʀᴍ ꜰᴜʟꜰɪʟʟ")));
-        gui.setItem(45, Utils.named(Material.RED_STAINED_GLASS_PANE, color("&c&lᴄᴀɴᴄᴇʟ")));
-        manager.setFulfillTarget(p, id);
-        p.openInventory(gui);
+        gui.setItem(53, Utils.named(Material.LIME_STAINED_GLASS_PANE, color("&a&lConfirm fulfill")));
+        gui.setItem(45, Utils.named(Material.RED_STAINED_GLASS_PANE, color("&c&lCancel")));
+
+        orderManager.setFulfillTarget(player, id);
+        player.openInventory(gui);
     }
 
-    // ---------- Events ----------
     @EventHandler
-    public void onInventoryClick(InventoryClickEvent e) {
-        if (!(e.getWhoClicked() instanceof Player)) return;
-        Player p = (Player) e.getWhoClicked();
-        String title = e.getView().getTitle();
-        int slot = e.getRawSlot();
-        e.setCancelled(true);
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
 
-        if (title.contains("ᴅᴇʙᴜɢ ᴍᴇɴᴜ")) {
+        String title = event.getView().getTitle();
+        int slot = event.getRawSlot();
+        event.setCancelled(true);
+
+        if (title.contains("Debug Menu")) {
             if (slot == 11) {
-                manager.clearAllOrders();
-                p.sendMessage(color("&cCleared all active orders!"));
-                p.closeInventory();
-            } else if (slot == 13) {
-                ItemStack item = getRandomLegalItem();
-                manager.createDebugOrder(item, (int) (Math.random() * 64) + 1, (int) (Math.random() * 299) + 2, "Server");
-                openOrdersMenu(p, 1);
-            } else if (slot == 15) {
-                manager.addBalance(p.getUniqueId().toString(), 10000);
-                p.sendMessage(color("&aAdded &e$10,000 &ato your balance!"));
+                orderManager.clearAllOrders();
+                player.sendMessage(color("&cCleared all active orders!"));
+                player.closeInventory();
+                return;
+            }
+            if (slot == 13) {
+                ItemStack random = new ItemStack(Material.DIAMOND);
+                orderManager.createDebugOrder(random, 8 + (int) (Math.random() * 32), 2 + (Math.random() * 100), "Server");
+                openOrdersMenu(player, 1);
+                return;
+            }
+            if (slot == 15) {
+                orderManager.addBalance(player.getUniqueId().toString(), 10000);
+                player.sendMessage(color("&aAdded &e$10,000 &ato your balance!"));
             }
             return;
         }
 
-        if (title.contains("ǫʀᴅᴇʀѕ (ᴘᴀɢᴇ")) {
+        if (title.contains("Orders (Page")) {
             if (slot == 45) {
-                int page = manager.getViewerPage(p);
-                if (page > 1) openOrdersMenu(p, page - 1);
+                int page = orderManager.getViewerPage(player);
+                if (page > 1) openOrdersMenu(player, page - 1);
                 return;
             }
             if (slot == 53) {
-                int page = manager.getViewerPage(p);
-                openOrdersMenu(p, page + 1);
+                int page = orderManager.getViewerPage(player);
+                openOrdersMenu(player, page + 1);
                 return;
             }
             if (slot == 49) {
-                openNewOrderGUI(p);
+                openNewOrderGUI(player);
+                return;
+            }
+            if (slot == 51) {
+                player.sendMessage(color("&eYour orders list is ready to be implemented."));
                 return;
             }
             if (slot < 45) {
-                List<Order> active = manager.getActiveOrders();
-                int page = manager.getViewerPage(p);
+                List<Order> orders = orderManager.getActiveOrders();
+                int page = orderManager.getViewerPage(player);
                 int index = (page - 1) * 45 + slot;
-                if (index < active.size()) {
-                    Order o = active.get(index);
-                    if (o.getOwnerUuid().equals(p.getUniqueId().toString())) {
-                        openYourOrdersMenu(p);
-                    } else {
-                        openFulfillGUI(p, o.getId());
+                if (index >= 0 && index < orders.size()) {
+                    Order order = orders.get(index);
+                    if (order != null) {
+                        openFulfillGUI(player, order.getId());
                     }
                 }
-                return;
             }
+            return;
         }
 
-        if (title.contains("ɴᴇᴡ ǫʀᴅᴇʀ")) {
+        if (title.contains("New Order")) {
             if (slot == 10) {
-                manager.clearSetup(p);
-                openOrdersMenu(p, 1);
+                orderManager.clearSetup(player);
+                openOrdersMenu(player, 1);
                 return;
             }
             if (slot == 12) {
-                // choose item from hand
-                ItemStack inHand = p.getInventory().getItemInMainHand();
+                ItemStack inHand = player.getInventory().getItemInMainHand();
                 if (inHand == null || inHand.getType() == Material.AIR) {
-                    p.sendMessage(color("&cHold an item in your hand to select it."));
+                    player.sendMessage(color("&cHold an item in your hand first."));
                 } else {
-                    manager.setSetupItem(p, inHand);
+                    orderManager.setSetupItem(player, inHand.clone());
                 }
-                openNewOrderGUI(p);
+                openNewOrderGUI(player);
                 return;
             }
             if (slot == 13) {
-                // open chat input to set amount
-                p.closeInventory();
-                manager.setAwaitingAmount(p, true);
-                p.sendMessage(color("&eType the desired quantity in chat (or type cancel):"));
+                player.closeInventory();
+                orderManager.setAwaitingAmount(player, true);
+                player.sendMessage(color("&eType a quantity in chat or type cancel."));
                 return;
             }
             if (slot == 14) {
-                p.closeInventory();
-                manager.setAwaitingPrice(p, true);
-                p.sendMessage(color("&eType the unit price ($) in chat (or type cancel):"));
+                player.closeInventory();
+                orderManager.setAwaitingPrice(player, true);
+                player.sendMessage(color("&eType a unit price in chat or type cancel."));
                 return;
             }
             if (slot == 16) {
-                if (manager.finalizeOrderCreation(p)) {
-                    p.sendMessage(color("&aOrder created!"));
-                    openOrdersMenu(p, 1);
+                if (orderManager.finalizeOrderCreation(player)) {
+                    player.sendMessage(color("&aOrder created!"));
+                    openOrdersMenu(player, 1);
                 } else {
-                    openNewOrderGUI(p);
+                    openNewOrderGUI(player);
                 }
                 return;
             }
         }
 
-        if (title.contains("ᴅᴇʟɪᴠᴇʀ ɪᴛᴇᴍѕ")) {
+        if (title.contains("Deliver Items")) {
             if (slot == 45) {
-                openOrdersMenu(p, 1);
+                openOrdersMenu(player, 1);
                 return;
             }
             if (slot == 53) {
-                String id = manager.getFulfillTarget(p);
+                String id = orderManager.getFulfillTarget(player);
                 if (id == null) return;
-                Order o = manager.getOrder(id);
-                if (o == null) return;
-                int deposited = manager.depositFromPlayerForOrder(p, o);
+                Order order = orderManager.getOrder(id);
+                if (order == null) return;
+
+                int deposited = orderManager.depositFromPlayerForOrder(player, order);
                 if (deposited <= 0) {
-                    p.sendMessage(color("&cPlace matching items (or Shulker Boxes containing them) into your inventory before confirming!"));
+                    player.sendMessage(color("&cNo matching items were deposited."));
                     return;
                 }
-                double payout = deposited * o.getPrice();
-                manager.addBalance(p.getUniqueId().toString(), payout);
-                o.addProgress(deposited);
-                manager.save();
-                p.sendMessage(color("&aSuccessfully delivered &e" + deposited + "x " + o.getItemDisplay() + "&a! Earned &a$" + payout + "&a."));
-                Player owner = Bukkit.getPlayer(o.getOwnerUuid());
-                if (owner != null && !o.getOwnerName().equals("Server")) {
-                    owner.sendMessage(color("&e" + p.getName() + " &fhas delivered &a" + deposited + "x " + o.getItemDisplay() + " &ffor your order!"));
-                }
-                openOrdersMenu(p, 1);
-                manager.clearFulfillTarget(p);
-                return;
+
+                double payout = deposited * order.getPrice();
+                orderManager.addBalance(player.getUniqueId().toString(), payout);
+                order.addProgress(deposited);
+                orderManager.save();
+                player.sendMessage(color("&aSuccessfully delivered &e" + deposited + "x " + order.getDisplayName() + "&a! Earned &a$" + payout + "&a."));
+                openOrdersMenu(player, 1);
+                orderManager.clearFulfillTarget(player);
             }
         }
     }
 
     @EventHandler
-    public void onInventoryClose(InventoryCloseEvent e) {
-        Player p = (Player) e.getPlayer();
-        String title = e.getView().getTitle();
-        if (title.contains("ᴅᴇʟɪᴠᴇʀ ɪᴛᴇᴍѕ")) {
-            manager.clearFulfillTarget(p);
+    public void onInventoryClose(InventoryCloseEvent event) {
+        Player player = (Player) event.getPlayer();
+        String title = event.getView().getTitle();
+        if (title.contains("Deliver Items")) {
+            orderManager.clearFulfillTarget(player);
         }
     }
 
     @EventHandler
-    public void onChat(AsyncPlayerChatEvent e) {
-        Player p = e.getPlayer();
-        if (manager.isAwaitingAmount(p)) {
-            e.setCancelled(true);
-            manager.setAwaitingAmount(p, false);
-            String msg = e.getMessage();
+    public void onChat(AsyncPlayerChatEvent event) {
+        Player player = event.getPlayer();
+
+        if (orderManager.isAwaitingAmount(player)) {
+            event.setCancelled(true);
+            orderManager.setAwaitingAmount(player, false);
+            String msg = event.getMessage();
             if (msg.equalsIgnoreCase("cancel")) {
-                p.sendMessage(color("&cCancelled input."));
-                Bukkit.getScheduler().runTask(this, () -> openNewOrderGUI(p));
+                player.sendMessage(color("&cCancelled input."));
+                Bukkit.getScheduler().runTask(this, () -> openNewOrderGUI(player));
                 return;
             }
             try {
-                int num = Integer.parseInt(msg);
-                if (num > 0) {
-                    manager.setSetupAmount(p, num);
-                    p.sendMessage(color("&aAmount set to &e" + num + "&a."));
+                int amount = Integer.parseInt(msg);
+                if (amount > 0) {
+                    orderManager.setSetupAmount(player, amount);
+                    player.sendMessage(color("&aAmount set to &e" + amount + "&a."));
                 } else {
-                    p.sendMessage(color("&cAmount must be greater than 0!"));
+                    player.sendMessage(color("&cAmount must be greater than 0."));
                 }
             } catch (NumberFormatException ex) {
-                p.sendMessage(color("&cInvalid number! Please enter a whole integer."));
+                player.sendMessage(color("&cInvalid number. Please enter a whole integer."));
             }
-            Bukkit.getScheduler().runTask(this, () -> openNewOrderGUI(p));
-        } else if (manager.isAwaitingPrice(p)) {
-            e.setCancelled(true);
-            manager.setAwaitingPrice(p, false);
-            String msg = e.getMessage();
+            Bukkit.getScheduler().runTask(this, () -> openNewOrderGUI(player));
+            return;
+        }
+
+        if (orderManager.isAwaitingPrice(player)) {
+            event.setCancelled(true);
+            orderManager.setAwaitingPrice(player, false);
+            String msg = event.getMessage();
             if (msg.equalsIgnoreCase("cancel")) {
-                p.sendMessage(color("&cCancelled input."));
-                Bukkit.getScheduler().runTask(this, () -> openNewOrderGUI(p));
+                player.sendMessage(color("&cCancelled input."));
+                Bukkit.getScheduler().runTask(this, () -> openNewOrderGUI(player));
                 return;
             }
             try {
                 double price = Double.parseDouble(msg);
                 if (price > 0) {
-                    manager.setSetupPrice(p, price);
-                    p.sendMessage(color("&aPrice set to &e$" + price + "&a."));
+                    orderManager.setSetupPrice(player, price);
+                    player.sendMessage(color("&aPrice set to &e$" + price + "&a."));
                 } else {
-                    p.sendMessage(color("&cPrice must be greater than 0!"));
+                    player.sendMessage(color("&cPrice must be greater than 0."));
                 }
             } catch (NumberFormatException ex) {
-                p.sendMessage(color("&cInvalid price!"));
+                player.sendMessage(color("&cInvalid price."));
             }
-            Bukkit.getScheduler().runTask(this, () -> openNewOrderGUI(p));
+            Bukkit.getScheduler().runTask(this, () -> openNewOrderGUI(player));
         }
-    }
-
-    // ---------- Helpers ----------
-    private String color(String s) {
-        return ChatColor.translateAlternateColorCodes('&', s);
-    }
-
-    private ItemStack getRandomLegalItem() {
-        Material[] mats = Material.values();
-        Material pick;
-        do {
-            pick = mats[(int) (Math.random() * mats.length)];
-        } while (Utils.isIllegalMaterial(pick));
-        return new ItemStack(pick);
-    }
-
-    public void openYourOrdersMenu(Player p) {
-        Inventory gui = Bukkit.createInventory(null, 6 * 9, color("ʏᴏᴜʀ ǫʀᴅᴇʀѕ"));
-        ItemStack filler = Utils.named(Material.GRAY_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 54; i++) gui.setItem(i, filler);
-        List<Order> mine = manager.getOrdersByOwner(p.getUniqueId().toString());
-        int slot = 0;
-        for (Order o : mine) {
-            if (slot >= 45) break;
-            ItemStack d = o.getItem().clone();
-            Utils.setName(d, color("&f" + o.getItemDisplay()));
-            List<String> lore = new ArrayList<>();
-            lore.add(color("&a" + o.getAmount() + " requested"));
-            lore.add(" ");
-            if (o.getPrice() > 0) {
-                lore.add(color("&a$" + o.getPrice() + " each"));
-                lore.add(color("&a" + o.getProgress() + "/" + o.getAmount() + " ᴅᴇʟɪᴠᴇʀᴇᴅ"));
-            } else {
-                lore.add(color("&cᴄᴀɴᴄᴇʟʟᴇᴅ"));
-                lore.add(color("&a" + o.getProgress() + "/" + o.getAmount() + " ᴅᴇʟɪᴠᴇʀᴇᴅ"));
-            }
-            Utils.setLore(d, lore);
-            gui.setItem(slot++, d);
-        }
-        gui.setItem(45, Utils.named(Material.ARROW, color("&fʙᴀᴄᴋ ᴛᴏ ǫʀᴅᴇʀѕ")));
-        p.openInventory(gui);
     }
 }
