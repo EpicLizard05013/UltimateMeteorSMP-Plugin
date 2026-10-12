@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 
 public final class UltimateMeteorSMP extends JavaPlugin {
 
@@ -75,14 +76,30 @@ public final class UltimateMeteorSMP extends JavaPlugin {
                 @Override
                 public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
                     sender.sendMessage("Checking for updates...");
-                    UpdateChecker.checkForUpdatesAsync(UltimateMeteorSMP.this, true);
+                    try {
+                        Class<?> uc = Class.forName("com.meteorsmp.ultimatemeteorsmp.UpdateChecker");
+                        Method m = uc.getMethod("checkForUpdatesAsync", JavaPlugin.class, boolean.class);
+                        m.invoke(null, UltimateMeteorSMP.this, true);
+                    } catch (ClassNotFoundException | NoSuchMethodException e) {
+                        sender.sendMessage("UpdateChecker not available.");
+                    } catch (Exception e) {
+                        sender.sendMessage("Update check failed: " + e.getMessage());
+                    }
                     return true;
                 }
             });
         }
 
         // Asynchronously check for updates on startup (console + ops)
-        UpdateChecker.checkForUpdatesAsync(this, true);
+        try {
+            Class<?> uc = Class.forName("com.meteorsmp.ultimatemeteorsmp.UpdateChecker");
+            Method m = uc.getMethod("checkForUpdatesAsync", JavaPlugin.class, boolean.class);
+            m.invoke(null, this, true);
+        } catch (ClassNotFoundException | NoSuchMethodException e) {
+            getLogger().info("UpdateChecker not present; skipping update check.");
+        } catch (Exception e) {
+            getLogger().warning("Update check failed: " + e.getMessage());
+        }
 
         getLogger().info("UltimateMeteorSMP has been enabled successfully!");
     }
