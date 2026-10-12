@@ -1,7 +1,6 @@
 package com.meteorsmp.ultimatemeteorsmp.auction;
 
 import com.meteorsmp.ultimatemeteorsmp.UltimateMeteorSMP;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -10,9 +9,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 
-import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 
 public class AuctionListener implements Listener {
@@ -55,12 +54,6 @@ public class AuctionListener implements Listener {
 
         if (title.contains("Confirm Purchase")) {
             event.setCancelled(true);
-
-            Inventory top = event.getView().getTopInventory();
-            if (event.getClickedInventory() != null && !event.getClickedInventory().equals(top)) {
-                return;
-            }
-
             int slot = event.getSlot();
             Integer id = guiManager.getConfirmId().get(player.getUniqueId());
             if (slot == 11) {
@@ -72,21 +65,9 @@ public class AuctionListener implements Listener {
                     player.closeInventory();
                     return;
                 }
-
-                if (item.getSellerUuid().equals(player.getUniqueId())) {
-                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f") + "&cYou cannot buy your own listing."));
-                    player.closeInventory();
-                    return;
+                if (plugin.getAuctionManager().completePurchase(player, item)) {
+                    player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.5f);
                 }
-
-                if (!plugin.getAuctionManager().completePurchase(player, item)) {
-                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f") + "&cPurchase failed. Economy is not configured or you cannot afford this item."));
-                    player.closeInventory();
-                    return;
-                }
-
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f") + "&aSuccessfully purchased item!"));
-                player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.5f);
                 player.closeInventory();
             }
             return;
@@ -94,12 +75,6 @@ public class AuctionListener implements Listener {
 
         if (title.contains("Auction")) {
             event.setCancelled(true);
-
-            Inventory top = event.getView().getTopInventory();
-            if (event.getClickedInventory() != null && !event.getClickedInventory().equals(top)) {
-                return;
-            }
-
             int slot = event.getSlot();
             Map<Integer, Integer> slotMap = guiManager.getSlotMapping(player.getUniqueId());
 
@@ -116,32 +91,45 @@ public class AuctionListener implements Listener {
                     return;
                 }
 
+                // If it's the player's own item, cancel and return it
                 if (item.getSellerUuid().equals(player.getUniqueId())) {
                     plugin.getAuctionManager().removeListing(id);
-                    player.getInventory().addItem(item.getItem());
-                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix") + "&cCancelled listing and returned item."));
-                    guiManager.openYourItemsGui(player, 1);
+                    
+                    HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(item.getItem());
+                    if (!leftover.isEmpty()) {
+                        for (ItemStack drop : leftover.values()) {
+                            player.getWorld().dropItemNaturally(player.getLocation(), drop);
+                        }
+                        player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix") + "&eYour inventory was full, so the returned item was dropped at your feet!"));
+                    }
+
+                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix") + "&cCancelled listing and returned the item."));
+                    player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 0.5f, 1.0f);
+                    
+                    if (title.contains("YOUR ITEMS") || title.contains("ʏᴏᴜʀ ɪᴛᴇᴍѕ")) {
+                        guiManager.openYourItemsGui(player, 1);
+                    } else {
+                        guiManager.openMainGui(player, 1);
+                    }
                 } else {
                     if (plugin.getConfig().getBoolean("auction.require-purchase-confirmation", true)) {
                         guiManager.openConfirmGui(player, item);
                     } else {
-                        if (!plugin.getAuctionManager().completePurchase(player, item)) {
-                            player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f") + "&cPurchase failed. Economy is not configured or you cannot afford this item."));
-                            return;
+                        if (plugin.getAuctionManager().completePurchase(player, item)) {
+                            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.5f);
+                            guiManager.openMainGui(player, 1);
                         }
-                        player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix") + "&aSuccessfully purchased item!"));
-                        guiManager.openMainGui(player, 1);
                     }
                 }
             } else if (slot == 47) {
                 String current = guiManager.getSortMode().getOrDefault(player.getUniqueId(), "high_to_low");
                 guiManager.getSortMode().put(player.getUniqueId(), current.equals("high_to_low") ? "low_to_high" : "high_to_low");
                 guiManager.openMainGui(player, 1);
-            } else if (slot == 50 && title.contains("ʏᴏᴜʀ ɪᴛᴇᴍѕ")) {
+            } else if (slot == 50 && (title.contains("YOUR ITEMS") || title.contains("ʏᴏᴜʀ ɪᴛᴇᴍѕ"))) {
                 player.closeInventory();
                 guiManager.getSearchingChat().put(player.getUniqueId(), true);
                 player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix") + "&7Type your search query in chat (&ccancel &7to clear):"));
-            } else if (slot == 51 && title.contains("ʏᴏᴜʀ ɪᴛᴇᴍѕ")) {
+            } else if (slot == 51 && (title.contains("YOUR ITEMS") || title.contains("ʏᴏᴜʀ ɪᴛᴇᴍѕ"))) {
                 String mode = guiManager.getUserViewMode().getOrDefault(player.getUniqueId(), "active");
                 guiManager.getUserViewMode().put(player.getUniqueId(), mode.equals("active") ? "transactions" : "active");
                 guiManager.openYourItemsGui(player, 1);
