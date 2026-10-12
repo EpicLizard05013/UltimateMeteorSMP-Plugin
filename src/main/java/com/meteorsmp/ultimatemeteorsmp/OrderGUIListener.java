@@ -29,7 +29,7 @@ public class OrderGUIListener implements Listener {
         String message = event.getMessage();
 
         if (manager.awaitingAmount.containsKey(player.getUniqueId())) {
-            event.setCancelled();
+            event.setCancelled(true);
             manager.awaitingAmount.remove(player.getUniqueId());
             if (message.equalsIgnoreCase("cancel")) {
                 player.sendMessage(OrderManager.TAG + " §cCancelled input.");
@@ -52,7 +52,7 @@ public class OrderGUIListener implements Listener {
         }
 
         if (manager.awaitingPrice.containsKey(player.getUniqueId())) {
-            event.setCancelled();
+            event.setCancelled(true);
             manager.awaitingPrice.remove(player.getUniqueId());
             if (message.equalsIgnoreCase("cancel")) {
                 player.sendMessage(OrderManager.TAG + " §cCancelled input.");
@@ -75,7 +75,7 @@ public class OrderGUIListener implements Listener {
         }
 
         if (manager.awaitingSearch.containsKey(player.getUniqueId())) {
-            event.setCancelled();
+            event.setCancelled(true);
             manager.awaitingSearch.remove(player.getUniqueId());
             if (message.equalsIgnoreCase("cancel")) {
                 player.sendMessage(OrderManager.TAG + " §cCancelled search.");
