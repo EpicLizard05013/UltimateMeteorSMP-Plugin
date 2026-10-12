@@ -7,6 +7,10 @@ commands:
   ah:
     description: Open auction house
     aliases: [auctionhouse, auction]
+  announce:
+    description: Send a title announcement to all players
+    permission: server.announce
+    aliases: [broadcast, bc]
   orders:
     description: Open the order menu
     usage: /orders [debug]
@@ -15,6 +19,14 @@ commands:
     description: Show the order help menu
     usage: /ordershelp
     permission: meteorsmp.admin
+  addmoney:
+    description: Add money to a player's balance
+    permission: ultimatemeteorsmp.admin
+    usage: /addmoney <player> <amount>
+  removemoney:
+    description: Remove money from a player's balance
+    permission: ultimatemeteorsmp.admin
+    usage: /removemoney <player> <amount>
 permissions:
   meteorsmp.admin:
     description: Admin access to debug order commands
@@ -22,3 +34,9 @@ permissions:
   meteorsmp.use:
     description: Allows access to the orders command
     default: true
+  ultimatemeteorsmp.admin:
+    description: Admin access for economy commands
+    default: op
+  server.announce:
+    description: Allows sending server announcements
+    default: op
