@@ -28,6 +28,8 @@ public class OrderManager {
     public final Map<UUID, Boolean> awaitingSearch = new HashMap<>();
     public final Map<UUID, Integer> guiPage = new HashMap<>();
     public final Map<UUID, Integer> pickerPage = new HashMap<>();
+    public final Map<UUID, String> pickerSearchFilter = new HashMap<>();
+    public final Map<UUID, String> pickerSortMode = new HashMap<>();
     public final Map<UUID, Integer> collectPage = new HashMap<>();
     public final Map<UUID, String> viewTarget = new HashMap<>();
     public final Map<UUID, String> collectTarget = new HashMap<>();
