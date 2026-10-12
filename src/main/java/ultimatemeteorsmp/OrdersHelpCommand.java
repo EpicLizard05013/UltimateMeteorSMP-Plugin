@@ -17,6 +17,7 @@ public class OrdersHelpCommand implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&e&l=== METEORSMP ORDERS HELP ==="));
         sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&6/orders &7- Open main order market GUI"));
+        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&6/order create debug random random &7- Spawn random order ($2-$300)"));
         sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&6/orders debug &7- Open Admin Debug Management GUI"));
         sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&e&l============================="));
         return true;
