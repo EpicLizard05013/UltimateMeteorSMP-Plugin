@@ -1,35 +1,32 @@
 package com.meteorsmp.ultimatemeteorsmp.auction;
 
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
-
 import java.util.UUID;
 
 public class AuctionItem {
     private final int id;
-    private final ItemStack item;
     private final UUID sellerUuid;
     private final String sellerName;
-    private final long price;
-    private final long timeListed;
-    private boolean sold;
+    private final ItemStack item;
+    private final double price;
+    private final long timestamp;
+    private final String itemName;
 
-    public AuctionItem(int id, ItemStack item, UUID sellerUuid, String sellerName, long price, long timeListed) {
+    public AuctionItem(int id, UUID sellerUuid, String sellerName, ItemStack item, double price, long timestamp, String itemName) {
         this.id = id;
-        this.item = item;
         this.sellerUuid = sellerUuid;
         this.sellerName = sellerName;
+        this.item = item;
         this.price = price;
-        this.timeListed = timeListed;
-        this.sold = false;
+        this.timestamp = timestamp;
+        this.itemName = itemName;
     }
 
     public int getId() { return id; }
-    public ItemStack getItem() { return item; }
     public UUID getSellerUuid() { return sellerUuid; }
     public String getSellerName() { return sellerName; }
-    public long getPrice() { return price; }
-    public long getTimeListed() { return timeListed; }
-    public boolean isSold() { return sold; }
-    public void setSold(boolean sold) { this.sold = sold; }
+    public ItemStack getItem() { return item; }
+    public double getPrice() { return price; }
+    public long getTimestamp() { return timestamp; }
+    public String getItemName() { return itemName; }
 }
