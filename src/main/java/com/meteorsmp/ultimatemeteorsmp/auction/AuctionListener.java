@@ -27,7 +27,10 @@ public class AuctionListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player player = (Player) event.getWhoClicked();
-        String title = ChatColor.stripColor(event.getView().getTitle()).toLowerCase();
+        if (event.getView().getTitle() == null) return;
+        
+        String rawTitle = event.getView().getTitle();
+        String title = ChatColor.stripColor(rawTitle).toLowerCase();
 
         if (title.contains("shulker preview")) {
             event.setCancelled(true);
@@ -73,18 +76,28 @@ public class AuctionListener implements Listener {
                     return;
                 }
 
-                // Cancellation & Reclaim Logic
-                if (item.getSellerUuid().equals(player.getUniqueId())) {
+                // --- ITEM CANCELLER / RECLAIM FIX ---
+                // Check matching UUID as string to ensure safe comparison across all Java/Paper builds
+                if (item.getSellerUuid() != null && item.getSellerUuid().toString().equalsIgnoreCase(player.getUniqueId().toString())) {
                     plugin.getAuctionManager().removeListing(id);
+                    
                     HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(item.getItem());
                     if (!leftover.isEmpty()) {
                         for (ItemStack drop : leftover.values()) {
                             player.getWorld().dropItemNaturally(player.getLocation(), drop);
                         }
+                        player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f") + "&eYour inventory was full, so the returned item was dropped at your feet!"));
                     }
-                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix") + "&cCancelled listing and returned item."));
+
+                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f") + "&cCancelled listing and returned your item."));
                     player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 0.5f, 1.0f);
-                    guiManager.openMainGui(player, 1);
+
+                    if (title.contains("your items") || title.contains("ʏᴏᴜʀ ɪᴛᴇᴍѕ")) {
+                        guiManager.openYourItemsGui(player, 1);
+                    } else {
+                        guiManager.openMainGui(player, 1);
+                    }
+                    return;
                 } else {
                     if (plugin.getConfig().getBoolean("auction.require-purchase-confirmation", true)) {
                         guiManager.openConfirmGui(player, item);
@@ -99,10 +112,10 @@ public class AuctionListener implements Listener {
                 String current = guiManager.getSortMode().getOrDefault(player.getUniqueId(), "high_to_low");
                 guiManager.getSortMode().put(player.getUniqueId(), current.equals("high_to_low") ? "low_to_high" : "high_to_low");
                 guiManager.openMainGui(player, 1);
-            } else if (slot == 50) { // Search button -> Sign Input
+            } else if (slot == 50) { // Sign Search Button
                 player.closeInventory();
                 SignInputHandler.openSignPrompt(player, "^^^ Search ^^^", input -> {
-                    if (input.isEmpty()) {
+                    if (input == null || input.isEmpty()) {
                         guiManager.getActiveSearch().remove(player.getUniqueId());
                     } else {
                         guiManager.getActiveSearch().put(player.getUniqueId(), input);
