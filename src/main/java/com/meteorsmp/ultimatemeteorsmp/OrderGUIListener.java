@@ -201,7 +201,7 @@ public class OrderGUIListener implements Listener {
                     OrderMenus.openNewOrderGUI(player, manager);
                 }
             }
-        } else if (title.equals("ǫʀᴅᴇʀѕ -> ɴᴇw ǫʀᴅᴇʀ") || title.equals("ǫʀᴅᴇʀѕ -> ɴᴇǫʀᴅᴇʀ")) {
+        } else if (title.equals("ǫʀᴅᴇʀѕ -> ɴᴇᴡ ǫʀᴅᴇʀ")) {
             event.setCancelled(true);
             if (slot == 10) {
                 manager.setupItem.remove(player.getUniqueId());
