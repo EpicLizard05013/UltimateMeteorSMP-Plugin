@@ -32,12 +32,17 @@ public class AuctionListener implements Listener {
         String rawTitle = event.getView().getTitle();
         String title = ChatColor.stripColor(rawTitle).toLowerCase();
 
-        if (title.contains("shulker preview")) {
+        // NOTE: GUI titles use small-caps Unicode letters (e.g. "ᴀᴜᴄᴛɪᴏɴ"),
+        // which are different codepoints from plain ASCII letters and are
+        // NOT affected by toLowerCase(). Checks here must match those exact
+        // Unicode substrings - "auction" (ASCII) will never match
+        // "ᴀᴜᴄᴛɪᴏɴ" (small-caps) even after lowercasing.
+        if (title.contains("ѕʜᴜʟᴋᴇʀ ᴘʀᴇᴠɪᴇᴡ")) {
             event.setCancelled(true);
             return;
         }
 
-        if (title.contains("confirm purchase")) {
+        if (title.contains("ᴄᴏɴꜰɪʀᴍ ᴘᴜʀᴄʜᴀѕᴇ")) {
             event.setCancelled(true);
             // SECURITY: only react to clicks inside the GUI itself, never the
             // player's own inventory - getSlot() aliases the two, so a click
@@ -65,7 +70,7 @@ public class AuctionListener implements Listener {
             return;
         }
 
-        if (title.contains("auction")) {
+        if (title.contains("ᴀᴜᴄᴛɪᴏɴ")) {
             event.setCancelled(true);
             // SECURITY: see the note in the "confirm purchase" branch above -
             // without this check, a click in the player's own inventory can
@@ -107,7 +112,7 @@ public class AuctionListener implements Listener {
                     player.sendMessage(ChatColor.translateAlternateColorCodes('&', plugin.getConfig().getString("messages.prefix", "&a[AH] &f") + "&cCancelled listing and returned your item."));
                     player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 0.5f, 1.0f);
 
-                    if (title.contains("your items") || title.contains("ʏᴏᴜʀ ɪᴛᴇᴍѕ")) {
+                    if (title.contains("ʏᴏᴜʀ ɪᴛᴇᴍѕ")) {
                         guiManager.openYourItemsGui(player, 1);
                     } else {
                         guiManager.openMainGui(player, 1);
