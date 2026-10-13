@@ -12,7 +12,7 @@ import java.util.*;
 public class OrderMenus {
 
     public static void openDebugGUI(Player p) {
-        Inventory gui = Bukkit.createInventory(null, 27, "ǫʀᴅᴇʀѕ -> ᴅᴇʙ���ɢ ᴍᴇɴᴜ");
+        Inventory gui = Bukkit.createInventory(null, 27, "ǫʀᴅᴇʀѕ -> ᴅᴇʙᴜɢ ᴍᴇɴᴜ");
         ItemStack pane = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta pm = pane.getItemMeta();
         pm.setDisplayName(" ");
